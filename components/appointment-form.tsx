@@ -13,14 +13,13 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Zap, Calendar, User, ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react"
-import type { Laboratory, Machine, AppointmentFormData, EfficiencyGroup } from "@/lib/types"
 
 export default function AppointmentForm() {
   const [currentStep, setCurrentStep] = useState(1)
-  const [laboratories, setLaboratories] = useState<Laboratory[]>([])
-  const [machines, setMachines] = useState<Machine[]>([])
-  const [efficiencyGroups, setEfficiencyGroups] = useState<EfficiencyGroup[]>([])
-  const [selectedGroup, setSelectedGroup] = useState<EfficiencyGroup | null>(null)
+  const [laboratories, setLaboratories] = useState<any[]>([])
+  const [machines, setMachines] = useState<any[]>([])
+  const [efficiencyGroups, setEfficiencyGroups] = useState<any[]>([])
+  const [selectedGroup, setSelectedGroup] = useState<any | null>(null)
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +28,7 @@ export default function AppointmentForm() {
   const [currentPage, setCurrentPage] = useState(1)
   const slotsPerPage = 10
 
-  const [formData, setFormData] = useState<AppointmentFormData>({
+  const [formData, setFormData] = useState<any>({
     laboratory_id: "",
     machine_ids: [],
     duration_minutes: 30,
@@ -63,7 +62,7 @@ export default function AppointmentForm() {
   const fetchLaboratories = async () => {
     try {
       const response = await fetch("/api/laboratories")
-      const data = await response.json()
+      const { data } = await response.json()
       setLaboratories(data)
     } catch (err) {
       setError("Error al cargar los laboratorios")
@@ -74,7 +73,7 @@ export default function AppointmentForm() {
     try {
       setLoading(true)
       const response = await fetch(`/api/machines?laboratory_id=${laboratoryId}`)
-      const data = await response.json()
+      const { data } = await response.json()
       setMachines(data)
     } catch (err) {
       setError("Error al cargar las máquinas")
@@ -95,7 +94,7 @@ export default function AppointmentForm() {
       const response = await fetch(url)
       console.log("[v0] API response status:", response.status)
 
-      const data = await response.json()
+      const { data } = await response.json()
       console.log("[v0] API response data:", data)
 
       if (!response.ok) {
@@ -172,7 +171,7 @@ export default function AppointmentForm() {
     }
   }
 
-  const selectedLaboratory = laboratories.find((lab) => lab.id === formData.laboratory_id)
+  const selectedLaboratory = laboratories?.find((lab) => lab.id === formData.laboratory_id)
   const selectedMachines = machines.filter((machine) => formData.machine_ids.includes(machine.id))
   const selectedTimeSlot = selectedGroup?.slots.find(
     (slot) => slot.start_time === formData.start_time && slot.end_time === formData.end_time,
@@ -268,7 +267,7 @@ export default function AppointmentForm() {
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="laboratory">Laboratorio</Label>
+                  <Label htmlFor="laboratory" style={{marginBottom:"1rem"}}>Laboratorio</Label>
                   <Select
                     value={formData.laboratory_id}
                     onValueChange={(value) => {
@@ -281,7 +280,7 @@ export default function AppointmentForm() {
                     </SelectTrigger>
                     <SelectContent>
                       {laboratories.map((lab) => (
-                        <SelectItem key={lab.id} value={lab.id}>
+                        <SelectItem key={lab.id} value={String(lab.id)}>
                           <div>
                             <div className="font-medium">{lab.name}</div>
                             <div className="text-sm text-muted-foreground">{lab.location}</div>
@@ -302,31 +301,31 @@ export default function AppointmentForm() {
                       </div>
                     ) : (
                       <div className="space-y-2 mt-2">
-                        {machines.map((machine) => (
+                          {machines.map((machine) => (
                           <div key={machine.id} className="flex items-center space-x-2 p-3 border rounded-lg">
                             <Checkbox
-                              id={machine.id}
-                              checked={formData.machine_ids.includes(machine.id)}
+                              id={machine.id.toString()}
+                              checked={formData.machine_ids.includes(machine.id.toString())}
                               onCheckedChange={(checked) => {
                                 if (checked) {
                                   setFormData({
                                     ...formData,
-                                    machine_ids: [...formData.machine_ids, machine.id],
+                                    machine_ids: [...formData.machine_ids, machine.id.toString()],
                                   })
                                 } else {
                                   setFormData({
                                     ...formData,
-                                    machine_ids: formData.machine_ids.filter((id) => id !== machine.id),
+                                    machine_ids: formData.machine_ids.filter((id) => id !== machine.id.toString()),
                                   })
                                 }
                               }}
                             />
                             <label
-                              htmlFor={machine.id}
+                              htmlFor={machine.id.toString()}
                               className="flex-1 flex items-center justify-between cursor-pointer"
                             >
                               <span className="font-medium">{machine.name}</span>
-                              <Badge variant="secondary">{machine.power_consumption} kW</Badge>
+                              <Badge variant="secondary">{machine.power_consumption.toString()} kW</Badge>
                             </label>
                           </div>
                         ))}

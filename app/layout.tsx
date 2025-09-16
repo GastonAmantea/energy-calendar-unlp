@@ -5,9 +5,8 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: 'Energy Calendar UNLP',
+  description: 'Sistema de gestión de reservas de laboratorios y máquinas con seguimiento de consumo energético',
 }
 
 export default function RootLayout({

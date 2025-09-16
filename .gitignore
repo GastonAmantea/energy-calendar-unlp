@@ -3,6 +3,7 @@
 # dependencies
 /node_modules
 
+node_modules
 # next.js
 /.next/
 /out/
@@ -25,3 +26,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/lib/generated/prisma

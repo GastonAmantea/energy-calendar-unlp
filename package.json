@@ -1,15 +1,17 @@
 {
-  "name": "my-v0-project",
+  "name": "energy-calendar-unlp",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "npm run prisma:generate && next dev",
+    "prisma:generate": "prisma generate --schema=./prisma/schema.prisma",
     "lint": "next lint",
     "start": "next start"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
+    "@prisma/client": "^6.16.1",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -49,6 +51,7 @@
     "lucide-react": "^0.454.0",
     "next": "14.2.16",
     "next-themes": "^0.4.6",
+    "pg": "^8.16.3",
     "react": "^18",
     "react-day-picker": "9.8.0",
     "react-dom": "^18",
@@ -67,6 +70,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "postcss": "^8.5",
+    "prisma": "^6.16.1",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "^5"

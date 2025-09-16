@@ -1,57 +1,116 @@
-import { NextResponse } from "next/server"
-import { mockAppointments } from "@/lib/mock-data"
-import type { AppointmentFormData, Appointment } from "@/lib/types"
+// app/api/appointments/route.ts
+export const runtime = 'nodejs';
 
-export async function GET(request: Request) {
+import { NextRequest, NextResponse } from 'next/server';
+import { AppointmentService } from '@/app/services/AppointmentService'; // ← update if needed
+
+const service = new AppointmentService();
+
+// Helpers
+function parseDateOnly(input: string): Date {
+  // Accepts "YYYY-MM-DD" or ISO; normalizes to local midnight
+  if (!input) throw new Error('Invalid date');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return new Date(`${input}T00:00:00`);
+  const d = new Date(input);
+  if (isNaN(d.getTime())) throw new Error('Invalid date');
+  return d;
+}
+
+function parseTime(input: string): Date {
+  // Accepts "HH:mm" or "HH:mm:ss" → store as Date for @db.Time()
+  if (!input) throw new Error('Invalid time');
+  const m = input.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) {
+    const d = new Date(input);
+    if (!isNaN(d.getTime())) return d;
+    throw new Error('Invalid time format');
+  }
+  const [, hh, mm, ss] = m;
+  return new Date(`1970-01-01T${hh}:${mm}:${ss ?? '00'}`);
+}
+
+// GET /api/appointments?date=YYYY-MM-DD&laboratory_id=1
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const date = searchParams.get("date")
-    const laboratoryId = searchParams.get("laboratory_id")
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date') || undefined;
+    const laboratoryId = searchParams.get('laboratory_id');
+    const laboratory_id = laboratoryId ? Number(laboratoryId) : undefined;
 
-    let filteredAppointments = mockAppointments
-
-    if (date) {
-      const targetDate = new Date(date)
-      filteredAppointments = filteredAppointments.filter(
-        (appointment) => appointment.appointment_date.toDateString() === targetDate.toDateString(),
-      )
-    }
-
-    if (laboratoryId) {
-      filteredAppointments = filteredAppointments.filter((appointment) => appointment.laboratory_id === laboratoryId)
-    }
-
-    return NextResponse.json(filteredAppointments)
-  } catch (error) {
-    return NextResponse.json({ error: "Error al obtener citas" }, { status: 500 })
+    const data = await service.getAllBy({ date, laboratory_id });
+    return NextResponse.json({ data }, { status: 200 });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error?.message ?? 'Error al obtener citas' },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(request: Request) {
+// POST /api/appointments
+// Body example:
+// {
+//   "laboratory_id": 1,
+//   "user_name": "Gastón",
+//   "user_email": "gaston@example.com",
+//   "appointment_date": "2025-09-20",
+//   "start_time": "09:00",
+//   "end_time": "11:00",
+//   "purpose": "Calibration",
+//   "status": "PENDING",
+//   "power_consumption": 12.5,
+//   "machineIds": [1,2,3]
+// }
+export async function POST(request: NextRequest) {
   try {
-    const formData: AppointmentFormData = await request.json()
+    const body = await request.json();
 
-    // Create new appointment
-    const newAppointment: Appointment = {
-      id: `app-${Date.now()}`,
-      laboratory_id: formData.laboratory_id,
-      machine_id: formData.machine_id,
-      user_name: formData.user_name,
-      user_email: formData.user_email,
-      appointment_date: new Date(formData.appointment_date),
-      start_time: formData.start_time,
-      end_time: formData.end_time,
-      purpose: formData.purpose,
-      status: "pending",
-      power_consumption: 0, // Will be calculated
-      created_at: new Date(),
+    // Basic validation (keep it lightweight; swap to Zod later if you want)
+    const required = [
+      'laboratory_id',
+      'user_name',
+      'user_email',
+      'appointment_date',
+      'start_time',
+      'end_time',
+      'purpose',
+      'status',
+    ];
+    for (const field of required) {
+      if (body[field] === undefined || body[field] === null || body[field] === '') {
+        return NextResponse.json(
+          { error: `Missing field: ${field}` },
+          { status: 400 }
+        );
+      }
     }
 
-    // In a real app, this would be saved to database
-    mockAppointments.push(newAppointment)
+    // Normalize types
+    const machineIds: number[] | undefined = Array.isArray(body.machineIds)
+      ? body.machineIds.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n))
+      : undefined;
 
-    return NextResponse.json({ message: "Cita creada exitosamente", appointment: newAppointment }, { status: 201 })
-  } catch (error) {
-    return NextResponse.json({ error: "Error al crear la cita" }, { status: 500 })
+    const data = {
+      laboratory_id: Number(body.laboratory_id),
+      user_name: String(body.user_name),
+      user_email: String(body.user_email),
+      appointment_date: parseDateOnly(String(body.appointment_date)),
+      start_time: parseTime(String(body.start_time)),
+      end_time: parseTime(String(body.end_time)),
+      purpose: String(body.purpose),
+      status: String(body.status),
+      power_consumption:
+        body.power_consumption !== undefined && body.power_consumption !== null
+          ? Number(body.power_consumption)
+          : undefined,
+      // created_at is DB default
+    };
+
+    const created = await service.create({ data, machineIds });
+    return NextResponse.json({ data: created }, { status: 201 });
+  } catch (error: any) {
+    const msg = typeof error?.message === 'string' ? error.message : 'Error al crear la cita';
+    const status = /invalid|missing/i.test(msg) ? 400 : 500;
+    return NextResponse.json({ error: msg }, { status });
   }
 }

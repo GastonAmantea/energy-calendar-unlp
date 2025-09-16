@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Laboratory {
+  id           Int           @id @default(autoincrement())
+  name         String
+  location     String
+  created_at   DateTime      @default(now())
+  machines     Machine[]
+  appointments Appointment[]
+}
+
+model Machine {
+  id                Int           @id @default(autoincrement())
+  name              String
+  power_consumption Decimal       @db.Decimal(10, 2)
+  created_at        DateTime      @default(now())
+  laboratory_id     Int
+  laboratory        Laboratory    @relation(fields: [laboratory_id], references: [id])
+  appointments      Appointment[] @relation("AppointmentMachines")
+}
+
+model PreferredHour {
+  id                Int      @id @default(autoincrement())
+  day_of_week       Int
+  start_time        DateTime @db.Time()
+  end_time          DateTime @db.Time()
+  power_consumption Decimal  @db.Decimal(10, 2)
+  created_at        DateTime @default(now())
+}
+
+model Appointment {
+  id                Int       @id @default(autoincrement())
+  laboratory_id     Int
+  laboratory        Laboratory @relation(fields: [laboratory_id], references: [id])
+  user_name         String
+  user_email        String
+  appointment_date  DateTime  @db.Date
+  start_time        DateTime  @db.Time()
+  end_time          DateTime  @db.Time()
+  purpose           String
+  status            String
+  power_consumption Decimal?  @db.Decimal(10, 2)
+  created_at        DateTime  @default(now())
+  machines          Machine[] @relation("AppointmentMachines")
+}
