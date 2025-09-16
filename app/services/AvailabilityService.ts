@@ -86,9 +86,6 @@ export class AvailabilityService {
       // caller should validate, but keep a defensive guard
       return {
         timeSlots: [],
-        recommendations: { energyEfficientSlots: [] },
-        totalDayConsumption: 0,
-        peakHours: [],
         efficiencyGroups: [],
       };
     }
