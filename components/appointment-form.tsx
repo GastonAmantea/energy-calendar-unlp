@@ -24,10 +24,10 @@ export default function AppointmentForm() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [totalConsumptionPerHour, setTotalConsumptionPerHour] = useState(0)
 
   const [currentPage, setCurrentPage] = useState(1)
   const slotsPerPage = 10
-
   const [formData, setFormData] = useState<any>({
     laboratory_id: "",
     machine_ids: [],
@@ -170,13 +170,26 @@ export default function AppointmentForm() {
       setCurrentStep(currentStep - 1)
     }
   }
+  useEffect(() => {
+    if (formData.machine_ids.length > 0) {
+      for (const machineId of formData.machine_ids) {
+        const machine = machines.find((m) => m.id == machineId);
+        if (machine) {
+          const oldTotal = Number(totalConsumptionPerHour);
+          setTotalConsumptionPerHour(oldTotal + Number(machine.power_consumption));
+          console.log("Total consumption per hour updated:", oldTotal + Number(machine.power_consumption));
+        }
+      }
+    }else{
+      setTotalConsumptionPerHour(0);
+    }
+  }, [formData.machine_ids]);
 
   const selectedLaboratory = laboratories?.find((lab) => lab.id === formData.laboratory_id)
   const selectedMachines = machines.filter((machine) => formData.machine_ids.includes(machine.id))
   const selectedTimeSlot = selectedGroup?.slots.find(
     (slot) => slot.start_time === formData.start_time && slot.end_time === formData.end_time,
   )
-
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-8">
       {[1, 2, 3].map((step) => (
@@ -371,6 +384,16 @@ export default function AppointmentForm() {
           {/* Step 2: Date and Time Selection */}
           {currentStep === 2 && (
             <div className="space-y-6">
+
+              <div className="flex items-center gap-2 mb-4">
+                <Zap className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Consumo estimado del turno:</h3>
+                <span className="text-sm text-muted-foreground">
+                   {totalConsumptionPerHour * (formData.duration_minutes / 60)} kW
+                </span>
+
+              </div>
+
               <div className="flex items-center gap-2 mb-4">
                 <Calendar className="h-5 w-5 text-primary" />
                 <h3 className="text-lg font-semibold">Fecha y Hora</h3>
