@@ -259,7 +259,7 @@ export default function AppointmentForm() {
               <strong>Horario:</strong> {formData.start_time} - {formData.end_time}
             </p>
             <p>
-              <strong>Consumo estimado:</strong> {(selectedTimeSlot?.power_consumption + (totalConsumptionPerHour * (formData.duration_minutes / 60))).toFixed(2).replace('.', ',')} kW
+              <strong>Consumo estimado:</strong> {(selectedTimeSlot?.power_consumption + (totalConsumptionPerHour * (formData.duration_minutes / 60))).toFixed(2).replace('.', ',')} kWh
             </p>
           </div>
           <Alert>
@@ -418,7 +418,7 @@ export default function AppointmentForm() {
                 <Zap className="h-5 w-5 text-primary" />
                 <h3 className="text-lg font-semibold">Consumo estimado del turno:</h3>
                 <span className="text-sm text-muted-foreground">
-                   {totalConsumptionPerHour * (formData.duration_minutes / 60)} kW
+                   {totalConsumptionPerHour * (formData.duration_minutes / 60)} kWh
                 </span>
 
               </div>
