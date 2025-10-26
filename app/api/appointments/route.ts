@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { AppointmentService } from '@/app/services/AppointmentService'; // ← update if needed
+import { start } from 'repl';
 
 const service = new AppointmentService();
 
@@ -26,7 +27,7 @@ function parseTime(input: string): Date {
     throw new Error('Invalid time format');
   }
   const [, hh, mm, ss] = m;
-  return new Date(`1970-01-01T${hh}:${mm}:${ss ?? '00'}`);
+  return new Date(`1970-01-01T${hh}:${mm}:${ss ?? '00'}Z`);
 }
 
 // GET /api/appointments?date=YYYY-MM-DD&laboratory_id=1
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-
+    body.status = body.status || 'RESERVADO';
     // Basic validation (keep it lightweight; swap to Zod later if you want)
     const required = [
       'laboratory_id',
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
       'purpose',
       'status',
     ];
+    console.log(body);
     for (const field of required) {
       if (body[field] === undefined || body[field] === null || body[field] === '') {
         return NextResponse.json(
@@ -86,10 +88,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Normalize types
-    const machineIds: number[] | undefined = Array.isArray(body.machineIds)
-      ? body.machineIds.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n))
+    const machineIds: number[] | undefined = Array.isArray(body.machine_ids)
+      ? body.machine_ids.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n))
       : undefined;
-
     const data = {
       laboratory_id: Number(body.laboratory_id),
       user_name: String(body.user_name),

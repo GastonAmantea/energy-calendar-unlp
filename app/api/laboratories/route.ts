@@ -11,6 +11,7 @@ export async function GET(_req: NextRequest) {
     const data = await service.getAll();
     return NextResponse.json({ data }, { status: 200 });
   } catch (error: any) {
+    console.log(error);
     return NextResponse.json(
       { error: error?.message ?? 'Error al obtener laboratorios' },
       { status: 500 }

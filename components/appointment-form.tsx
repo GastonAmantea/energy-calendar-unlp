@@ -26,6 +26,10 @@ export default function AppointmentForm() {
   const [success, setSuccess] = useState(false)
   const [totalConsumptionPerHour, setTotalConsumptionPerHour] = useState(0)
 
+  const [selectedLaboratory, setSelectedLaboratory] = useState(null)
+  const [selectedMachines, setSelectedMachines] = useState(null)
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState(null)
+
   const [currentPage, setCurrentPage] = useState(1)
   const slotsPerPage = 10
   const [formData, setFormData] = useState<any>({
@@ -38,6 +42,7 @@ export default function AppointmentForm() {
     start_time: "",
     end_time: "",
     purpose: "",
+    power_consumption: 0,
   })
 
   // Load laboratories on component mount
@@ -48,6 +53,8 @@ export default function AppointmentForm() {
   // Load machines when laboratory changes
   useEffect(() => {
     if (formData.laboratory_id) {
+      const aux = laboratories?.find((lab) => lab.id == formData.laboratory_id);
+      setSelectedLaboratory(aux);
       fetchMachines(formData.laboratory_id)
     }
   }, [formData.laboratory_id])
@@ -130,16 +137,23 @@ export default function AppointmentForm() {
 
       if (response.ok) {
         const result = await response.json()
-
+        console.log("Appointment created:", result)
         try {
-          await fetch("/api/notifications/send", {
+          const arrayName = result.data.machines.map((m) => m.name);
+          await fetch("/api/mail", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              type: "confirmation",
-              appointmentId: result.appointment.id,
+              appointment_date: result.data.appointment_date,
+              start_time: result.data.start_time,
+              end_time: result.data.end_time,
+              laboratory_name: result.data.laboratory.name,
+              machine_names: arrayName,
+              user_mail: result.data.user_email,
+              user_name: result.data.user_name,
+              purpose: result.data.purpose,
             }),
           })
         } catch (emailError) {
@@ -172,24 +186,39 @@ export default function AppointmentForm() {
   }
   useEffect(() => {
     if (formData.machine_ids.length > 0) {
+      const numericMachineIds = formData.machine_ids.map(id => Number(id));
+      const aux = machines.filter((machine) => numericMachineIds.includes(machine.id))
+      setSelectedMachines(aux);
+      let acum = 0;
       for (const machineId of formData.machine_ids) {
         const machine = machines.find((m) => m.id == machineId);
         if (machine) {
-          const oldTotal = Number(totalConsumptionPerHour);
-          setTotalConsumptionPerHour(oldTotal + Number(machine.power_consumption));
-          console.log("Total consumption per hour updated:", oldTotal + Number(machine.power_consumption));
+          acum = acum + Number(machine.power_consumption);
         }
       }
+      setTotalConsumptionPerHour(acum);
     }else{
       setTotalConsumptionPerHour(0);
     }
   }, [formData.machine_ids]);
 
-  const selectedLaboratory = laboratories?.find((lab) => lab.id === formData.laboratory_id)
-  const selectedMachines = machines.filter((machine) => formData.machine_ids.includes(machine.id))
-  const selectedTimeSlot = selectedGroup?.slots.find(
-    (slot) => slot.start_time === formData.start_time && slot.end_time === formData.end_time,
-  )
+  useEffect(() => {
+    // Reset time slot selection when changing steps
+    setFormData({
+      ...formData,
+      power_consumption: totalConsumptionPerHour * (formData.duration_minutes / 60),
+    })
+  }, [totalConsumptionPerHour, formData.duration_minutes ])
+
+  useEffect(() => {
+    // Reset time slot selection when changing steps
+    if(formData.start_time && formData.end_time){
+      const aux = selectedGroup?.slots.find(
+    (slot) => slot.start_time === formData.start_time && slot.end_time === formData.end_time);
+      setSelectedTimeSlot(aux)
+    }
+  }, [formData.start_time, formData.end_time])
+
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-8">
       {[1, 2, 3].map((step) => (
@@ -212,7 +241,7 @@ export default function AppointmentForm() {
       <Card className="max-w-2xl mx-auto">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl text-primary">¡Cita Reservada Exitosamente!</CardTitle>
-          <CardDescription>Tu solicitud de cita ha sido enviada y está pendiente de confirmación.</CardDescription>
+          <CardDescription>Tu solicitud de cita ha sido enviada y está confirmada.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-muted p-4 rounded-lg">
@@ -230,7 +259,7 @@ export default function AppointmentForm() {
               <strong>Horario:</strong> {formData.start_time} - {formData.end_time}
             </p>
             <p>
-              <strong>Consumo estimado:</strong> {selectedTimeSlot?.power_consumption.toFixed(1)} kW
+              <strong>Consumo estimado:</strong> {(selectedTimeSlot?.power_consumption + (totalConsumptionPerHour * (formData.duration_minutes / 60))).toFixed(2).replace('.', ',')} kW
             </p>
           </div>
           <Alert>
@@ -292,7 +321,7 @@ export default function AppointmentForm() {
                       <SelectValue placeholder="Selecciona un laboratorio" />
                     </SelectTrigger>
                     <SelectContent>
-                      {laboratories.map((lab) => (
+                      {laboratories?.map((lab) => (
                         <SelectItem key={lab.id} value={String(lab.id)}>
                           <div>
                             <div className="font-medium">{lab.name}</div>
@@ -450,7 +479,7 @@ export default function AppointmentForm() {
                                     <div className="flex items-center gap-1">
                                       <Zap className="h-4 w-4 text-secondary" />
                                       <span className="text-sm font-medium">
-                                        {group.average_power_consumption.toFixed(1)} kW
+                                        {group.average_power_consumption.toFixed(1).replace('.', ',')} kW
                                       </span>
                                     </div>
                                     {group.power_spike_percentage > 0 ? (
@@ -523,11 +552,11 @@ export default function AppointmentForm() {
                                 <div className="flex items-center gap-3">
                                   <div className="flex items-center gap-1">
                                     <Zap className="h-4 w-4 text-secondary" />
-                                    <span className="text-sm font-medium">{slot.power_consumption.toFixed(1)} kW</span>
+                                    <span className="text-sm font-medium">{slot.power_consumption.toFixed(2).replace('.', ',')} kW</span>
                                   </div>
                                   {slot.power_spike_percentage > 0 && (
                                     <Badge variant="outline" className="text-xs">
-                                      +{slot.power_spike_percentage.toFixed(0)}%
+                                      +{slot.power_spike_percentage.toFixed(0).replace('.', ',')}%
                                     </Badge>
                                   )}
                                   {slot.power_spike_percentage === 0 && (
@@ -650,11 +679,10 @@ export default function AppointmentForm() {
                     <strong>Horario:</strong> {formData.start_time} - {formData.end_time}
                   </p>
                   <p>
-                    <strong>Consumo estimado:</strong> {selectedTimeSlot?.power_consumption.toFixed(1)} kW
                   </p>
                   {selectedTimeSlot && selectedTimeSlot.power_spike_percentage > 0 && (
                     <p>
-                      <strong>Incremento energético:</strong> +{selectedTimeSlot.power_spike_percentage.toFixed(0)}% vs
+                      <strong>Incremento energético:</strong> +{selectedTimeSlot.power_spike_percentage.toFixed(0).replace('.', ',')}% vs
                       opción óptima
                     </p>
                   )}

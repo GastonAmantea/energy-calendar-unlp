@@ -60,7 +60,7 @@ export class AvailabilityService {
   private static readonly WORKING_HOURS_END = 18; // ends at 6 pm
   private static readonly DEFAULT_SLOT_DURATION = 2; // hours
   private static readonly MAX_DAILY_CONSUMPTION = 50; // kW total per day (not enforced; used for recs/future)
-  private static readonly PEAK_CONSUMPTION_THRESHOLD = 4.0; // kW per slot
+  private static readonly PEAK_CONSUMPTION_THRESHOLD = 100; // kW per slot
   private static readonly SLOT_INCREMENT_MINUTES = 30; // Generate slots every 30 minutes
 
   /**
