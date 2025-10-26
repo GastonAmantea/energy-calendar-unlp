@@ -291,12 +291,21 @@ export class AvailabilityService {
   }
 
   /** Convert Date(@db.Time()) to "HH:MM" */
-  private static timeFromDate(d: Date): string {
-    const offset = 3 // Argentina Standard Time (UTC-3)
-    const hh = (d.getHours() + offset).toString().padStart(2, '0');
-    const mm = d.getMinutes().toString().padStart(2, '0');
-    return `${hh}:${mm}`;
-  }
+private static timeFromDate(d: Date): string {
+    // const offset = 3 // REMOVE THIS
+    
+    // Use getUTCHours() and getUTCMinutes() for deterministic, timezone-independent results.
+    // This assumes the time in your DB (e.g., 10:00) is being read by Prisma
+    // as a Date object like 1970-01-01T10:00:00Z.
+    const hh = d.getUTCHours().toString().padStart(2, '0');
+    const mm = d.getUTCMinutes().toString().padStart(2, '0');
+    
+    // Handle potential 24:00 (due to timezone wrapping, e.g., 21:00-03:00 becomes 00:00)
+    if (hh === '24') {
+      return `00:${mm}`;
+    }
+    return `${hh}:${mm}`;
+  }
 
   private static timeToMinutes(time: string): number {
     const [h, m] = time.split(':').map(Number);
