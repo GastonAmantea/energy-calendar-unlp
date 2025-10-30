@@ -479,7 +479,7 @@ export default function AppointmentForm() {
                                     <div className="flex items-center gap-1">
                                       <Zap className="h-4 w-4 text-secondary" />
                                       <span className="text-sm font-medium">
-                                        {group.average_power_consumption.toFixed(1).replace('.', ',')} kW
+                                        {group.average_power_consumption.toFixed(1).replace('.', ',')} kWh
                                       </span>
                                     </div>
                                     {group.power_spike_percentage > 0 ? (
@@ -552,7 +552,7 @@ export default function AppointmentForm() {
                                 <div className="flex items-center gap-3">
                                   <div className="flex items-center gap-1">
                                     <Zap className="h-4 w-4 text-secondary" />
-                                    <span className="text-sm font-medium">{slot.power_consumption.toFixed(2).replace('.', ',')} kW</span>
+                                    <span className="text-sm font-medium">{slot.power_consumption.toFixed(2).replace('.', ',')} kWh</span>
                                   </div>
                                   {slot.power_spike_percentage > 0 && (
                                     <Badge variant="outline" className="text-xs">
